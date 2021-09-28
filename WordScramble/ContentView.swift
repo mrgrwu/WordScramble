@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var usedWords = [String]()
     @State private var rootWord = ""
     @State private var newWord = ""
+    @State private var score: Int = 0
     
     @State private var errorTitle = ""
     @State private var errorMessage = ""
@@ -30,8 +31,17 @@ struct ContentView: View {
                         Text(word)
                     }
                 }
+                Text("Score: \(score)")
+                    .font(.title)
             }
             .navigationBarTitle(rootWord)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: startGame) {
+                        Text("New Word")
+                    }
+                }
+            }
             .onAppear(perform: startGame)
             .alert(isPresented: $showingError) {
                 Alert(title: Text(errorTitle), message: Text(errorMessage), dismissButton: .default(Text("OK")))
@@ -49,6 +59,11 @@ struct ContentView: View {
                 
                 // 4. Pick one random word, or use "silkworm" as a sensible default
                 rootWord = allWords.randomElement() ?? "silkworm"
+                
+                // for restarting game
+                usedWords = []
+                newWord = ""
+                score = 0
                 
                 // If we are here everything has worked, so we can exit
                 return
@@ -83,12 +98,19 @@ struct ContentView: View {
             return
         }
         
+        guard isLongEnough(word: answer) else {
+            wordError(title: "Word is too short", message: "Enter a word longer than 2 letters.")
+            return
+        }
+        
         usedWords.insert(answer, at: 0)
         newWord = ""
+        score += 10  // 10 points for each new word
+        score += answer.count  // plus length of word
     }
     
     func isOriginal(word: String) -> Bool {
-        return !usedWords.contains(word)
+        return !usedWords.contains(word) && (word != rootWord)
     }
     
     func isPossible(word: String) -> Bool {
@@ -111,6 +133,10 @@ struct ContentView: View {
         let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
         
         return misspelledRange.location == NSNotFound
+    }
+    
+    func isLongEnough(word: String) -> Bool {
+        return word.count > 2
     }
     
     func wordError(title: String, message: String) {
